@@ -19,6 +19,10 @@ def get_models(platform):
     else:
         return []
 
+# 获取当前选择模型平台下开放的模型
+def get_model_list(platform):
+    client.models.list()
+
 # 更新模型下拉框的内容
 def update_models(event=None):
     selected_platform = platform_combobox.get()
@@ -47,8 +51,24 @@ def on_confirm():
     messagebox.showinfo("成功", "配置已保存！")
 
 # 取消按钮点击事件
-def on_cancel():
-    root.destroy()
+def on_start():
+    platform = platform_combobox.get()
+    api_key = api_key_entry.get()
+    model = model_combobox.get()
+
+    # 校验字段是否为空
+    if not platform:
+        messagebox.showwarning("警告", "请选择模型平台！")
+        return
+    if not api_key:
+        messagebox.showwarning("警告", "请输入 API Key！")
+        return
+    if not model:
+        messagebox.showwarning("警告", "请选择模型！")
+        return
+
+    # 如果所有字段都有值，跳转到对话界面
+    show_chat()
 
 # 载入配置文件
 def load_config():
@@ -77,6 +97,18 @@ def copy_api_key():
         messagebox.showinfo("成功", "API Key 已复制到剪贴板！")
     else:
         messagebox.showwarning("警告", "API Key 为空，无法复制！")
+
+# 创建一个自定义按钮样式的函数
+def create_styled_button(parent, text, command=None):
+    # 创建 Canvas 绘制圆角矩形按钮
+    button = tk.Button(parent, text=text, command=command, relief="flat",
+                       fg="white", bg="#409EFF", activebackground="#66b1ff",
+                       activeforeground="white", font=("微软雅黑", 10, "bold"),
+                       bd=0, padx=10, pady=3, highlightthickness=0)
+
+    # 按钮的圆角效果可以通过 canvas 绘制
+    button.configure(highlightthickness=0)  # 去掉按钮外的高亮
+    return button
 
 # 创建主窗口
 root = tk.Tk()
@@ -113,20 +145,38 @@ config_label.bind("<Button-1>", on_config_click)  # 绑定左键点击事件
 content_frame = tk.Frame(root, bg="white")
 content_frame.pack(side=tk.RIGHT, fill=tk.BOTH, expand=True)
 
-# 对话界面（空白）
+# 对话界面
 chat_frame = tk.Frame(content_frame, bg="white")
 chat_frame.pack(fill=tk.BOTH, expand=True)
+
+# 创建底部浅蓝色阴影区域
+bottom_shadow_frame = tk.Frame(chat_frame, bg="#E0E0E0", height=80)  # 浅蓝色阴影
+bottom_shadow_frame.pack(fill=tk.X, side=tk.BOTTOM)
+
+# 在阴影区域中添加文本框和发送按钮
+input_frame = tk.Frame(bottom_shadow_frame, bg="#E0E0E0")
+input_frame.pack(fill=tk.BOTH, padx=2, pady=2)  # 缩小间距为 2 像素
+
+# 使用 grid 布局管理器
+input_frame.grid_columnconfigure(0, weight=1)  # 文本框占满剩余空间
+input_frame.grid_columnconfigure(1, weight=0)  # 发送按钮固定宽度
+
+# 创建文本框
+input_text = tk.Text(input_frame, font=("微软雅黑", 12), height=3, wrap=tk.WORD)
+input_text.grid(row=0, column=0, sticky="ew", padx=(0, 5))  # 文本框占满剩余空间，右侧留 5 像素间距
+
+# 创建发送按钮
+send_button = tk.Button(input_frame, text="发送", font=("微软雅黑", 12), bg="#409EFF", fg="white", relief="flat", width=10, height=3)
+send_button.grid(row=0, column=1, sticky="e")  # 发送按钮固定在右侧
 
 # 配置界面
 config_frame = tk.Frame(content_frame, bg="white")
 
-# chat_label = tk.Label(navigation_frame, text="对话", bg="#f0f0f0", fg="black", font=("微软雅黑", 13), width=label_width)
 # 模型平台
 platform_label = tk.Label(config_frame, text="模型平台:", bg="white", fg="black", font=("微软雅黑", 13))
 platform_label.grid(row=0, column=0, padx=10, pady=10, sticky=tk.W)
 platform_combobox = ttk.Combobox(config_frame, values=["DeepSeek", "ZhiPuAI", "OpenAI"])
 platform_combobox.grid(row=0, column=1, padx=10, pady=10, sticky=tk.EW)
-# platform_combobox.current(0)
 platform_combobox.bind("<<ComboboxSelected>>", update_models)
 
 # API Key
@@ -150,11 +200,11 @@ update_models()  # 初始化模型下拉框
 button_frame = tk.Frame(config_frame, bg="white")
 button_frame.grid(row=3, column=0, columnspan=3, pady=20)
 
-confirm_button = tk.Button(button_frame, text="确定", command=on_confirm)
+confirm_button = create_styled_button(button_frame, "确定", on_confirm)
 confirm_button.pack(side=tk.LEFT, padx=10)
 
-cancel_button = tk.Button(button_frame, text="取消", command=on_cancel)
-cancel_button.pack(side=tk.LEFT, padx=10)
+start_button = create_styled_button(button_frame, "start chat", on_start)
+start_button.pack(side=tk.LEFT, padx=10)
 
 # 默认显示对话界面
 config_frame.pack_forget()
